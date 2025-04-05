@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abnormal Red - Login</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background-color: #121212; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+    .container { background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(255, 0, 0, 0.7); width: 90%; max-width: 400px; }
+    h2 { margin-bottom: 20px; color: #ff0000; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .btn { border: none; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+    .btn-primary { background: #ff0000; color: white; }
+    .btn-primary:hover { background: #b00000; }
+    .toggle-text { color: #ff0000; cursor: pointer; margin-top: 10px; display: inline-block; }
+    .toggle-text:hover { text-decoration: underline; }
+    .auth-section { display: none; }
+    .active { display: block; }
+    .user-info, .premium-section, .redeem-section { display: none; margin-top: 15px; }
+    .premium-section input, .redeem-section input { background: #222; color: #fff; border: 1px solid #444; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Welcome to Abnormal Red</h2>
+    <p>The Best Free Fire Panel Provider</p>
+
+    <!-- Sign In Section -->
+    <div id="signin-section" class="auth-section active">
+      <input type="email" id="signin-email" placeholder="Enter your email">
+      <input type="password" id="signin-password" placeholder="Enter your password">
+      <button id="signin" class="btn btn-primary">Sign In</button>
+      <button id="google-signin" class="btn btn-primary">Continue with Google</button>
+      <p class="toggle-text" onclick="toggleAuth('signup')">New? Sign Up</p>
+    </div>
+
+    <!-- Sign Up Section -->
+    <div id="signup-section" class="auth-section">
+      <input type="email" id="signup-email" placeholder="Enter your email">
+      <input type="password" id="signup-password" placeholder="Enter your password">
+      <button id="signup" class="btn btn-primary">Sign Up</button>
+      <p class="toggle-text" onclick="toggleAuth('signin')">Already signed up? Sign In</p>
+    </div>
+
+    <!-- User Info Section -->
+    <div id="user-info" class="user-info">
+      <h3>Welcome, <span id="user-name"></span></h3>
+      <button id="logout" class="btn btn-primary">Logout</button>
+
+      <!-- Premium Section (for users with premium keys) -->
+      <div id="premium-section" class="premium-section">
+        <p id="premium-status"></p>
+        <p id="sid-info"></p>
+        <p id="reset-time"></p>
+
+        <div id="update-sid-section">
+          <input type="text" id="new-sid" placeholder="Enter new SID">
+          <button id="update-sid" class="btn btn-primary">Update SID</button>
+        </div>
+      </div>
+      
+      <!-- Redeem Section (for non-premium users) -->
+      <div id="redeem-section" class="redeem-section">
+        <input type="text" id="redeem-key" placeholder="Enter your redeem key">
+        <input type="text" id="redeem-sid" placeholder="Enter your SID">
+        <button id="redeem" class="btn btn-primary">Redeem Key</button>
+        <button id="buy-key" class="btn btn-primary">Buy Key</button>
+      </div>
+    </div>
+
+    <p>© 2024 All rights reserved Abnormal Red</p>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDr6w-Xud6OcWs2bxpto3T1LA9RnONthHA",
+      authDomain: "abnormalredapi-40510.firebaseapp.com",
+      projectId: "abnormalredapi-40510",
+      storageBucket: "abnormalredapi-40510.firebasestorage.app",
+      messagingSenderId: "924045709788",
+      appId: "1:924045709788:web:b9d53fd77e614b77173f19",
+      measurementId: "G-8FBL2KD33W"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Keep track of the current SID so we can pass it to the update-sid function
+    let currentSid = null;
+
+    // Sign In
+    document.getElementById("signin").addEventListener("click", () => {
+      const email = document.getElementById("signin-email").value;
+      const password = document.getElementById("signin-password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(uc => checkPremiumStatus(uc.user))
+        .catch(e => alert(e.message));
+    });
+
+    // Google Sign-In
+    document.getElementById("google-signin").addEventListener("click", () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then(uc => checkPremiumStatus(uc.user))
+        .catch(e => alert(e.message));
+    });
+
+    // Sign Up
+    document.getElementById("signup").addEventListener("click", () => {
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(uc => {
+          uc.user.sendEmailVerification()
+            .then(() => {
+              alert("Verification email sent. Please verify and then sign in.");
+              auth.signOut();
+            });
+        })
+        .catch(e => alert(e.message));
+    });
+
+    // Logout
+    document.getElementById("logout").addEventListener("click", () => {
+      auth.signOut().then(() => location.reload());
+    });
+
+    // Toggle Sign In / Sign Up
+    function toggleAuth(sec) {
+      document.getElementById("signin-section").classList.toggle("active", sec === "signin");
+      document.getElementById("signup-section").classList.toggle("active", sec === "signup");
+    }
+
+    // Check Premium Status
+    async function checkPremiumStatus(user) {
+      document.getElementById("signin-section").style.display = "none";
+      document.getElementById("signup-section").style.display = "none";
+      document.getElementById("user-name").innerText = user.email;
+      document.getElementById("user-info").style.display = "block";
+
+      const snap = await db.collection("premium_keys")
+                         .where("assigned_to", "==", user.email)
+                         .get();
+
+      if (!snap.empty) {
+        // Premium
+        const data = snap.docs[0].data();
+        currentSid = data.sid || null;
+
+        document.getElementById("premium-status").innerText = "✅ Premium Activated!";
+        document.getElementById("sid-info").innerText = currentSid
+          ? `SID: ${currentSid}`
+          : "SID: Not Set";
+
+        const last = data.reset_cooldown
+          ? data.reset_cooldown.toDate()
+          : null;
+
+        document.getElementById("reset-time").innerText = last
+          ? `Last Reset: ${last.toDateString()}`
+          : "Reset Time: Not Available";
+
+        // cooldown check
+        const canUpdate = !last || (Date.now() - last.getTime()) > 30*24*60*60*1000;
+        document.getElementById("update-sid-section").style.display = canUpdate ? "block" : "none";
+
+        document.getElementById("premium-section").style.display = "block";
+        document.getElementById("redeem-section").style.display = "none";
+      } else {
+        // Not premium
+        document.getElementById("premium-section").style.display = "none";
+        document.getElementById("redeem-section").style.display = "block";
+      }
+    }
+
+    // Update SID via your serverless function
+    document.getElementById("update-sid").addEventListener("click", async () => {
+      const newSid = document.getElementById("new-sid").value.trim();
+      if (!newSid || !currentSid) return alert("Invalid new SID or no existing SID!");
+
+      const url = `https://apiabnormalred.netlify.app/.netlify/functions/updatesid?old_sid=${encodeURIComponent(currentSid)}&new_sid=${encodeURIComponent(newSid)}`;
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Unknown error");
+        alert(json.message);
+        // reload status
+        checkPremiumStatus(auth.currentUser);
+      } catch (e) {
+        alert("Update SID failed: " + e.message);
+      }
+    });
+
+    // Redeem Key via your serverless function
+    document.getElementById("redeem").addEventListener("click", async () => {
+      const key = document.getElementById("redeem-key").value.trim();
+      const sid = document.getElementById("redeem-sid").value.trim();
+      const user = auth.currentUser;
+      if (!key || !sid || !user) return alert("Enter a valid key, SID, and make sure you’re signed in!");
+
+      const url = `https://apiabnormalred.netlify.app/.netlify/functions/redeemkey?email=${encodeURIComponent(user.email)}&redeem_key=${encodeURIComponent(key)}&sid=${encodeURIComponent(sid)}`;
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Unknown error");
+        alert(json.message);
+        // reload status
+        checkPremiumStatus(user);
+      } catch (e) {
+        alert("Redeem failed: " + e.message);
+      }
+    });
+
+    // Buy Key
+    document.getElementById("buy-key").addEventListener("click", () => {
+      window.location.href = "https://discord.gg/YOUR_DISCORD_LINK";
+    });
+  </script>
+</body>
+</html>
