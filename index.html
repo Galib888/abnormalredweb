@@ -1703,7 +1703,7 @@
         setButtonLoading(updateBtn, true);
         
         try {
-          const url = `https://apiabnormalred.netlify.app/.netlify/functions/updatesid?old_sid=${encodeURIComponent(currentSid)}&new_sid=${encodeURIComponent(newSid)}`;
+          const url = `https://api2abnormalred.netlify.app/.netlify/functions/updatesid?old_sid=${encodeURIComponent(currentSid)}&new_sid=${encodeURIComponent(newSid)}`;
           const response = await fetch(url);
           const data = await response.json();
           
@@ -1744,7 +1744,7 @@
         setButtonLoading(redeemBtn, true);
         
         try {
-          const url = `https://apiabnormalred.netlify.app/.netlify/functions/redeemkey?email=${encodeURIComponent(currentUser.email)}&redeem_key=${encodeURIComponent(key)}&sid=${encodeURIComponent(sid)}`;
+          const url = `https://api2abnormalred.netlify.app/.netlify/functions/redeemkey?email=${encodeURIComponent(currentUser.email)}&redeem_key=${encodeURIComponent(key)}&sid=${encodeURIComponent(sid)}`;
           
           // Add timeout to the fetch request to prevent hanging
           const controller = new AbortController();
