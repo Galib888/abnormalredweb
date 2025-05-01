@@ -1813,7 +1813,7 @@
             document.getElementById('reset-time').textContent = resetCooldown ? `${resetCooldown.toDateString()}` : 'Not Available';
             document.getElementById('reset-time').style.animation = 'fadeIn 0.5s ease-out';
             
-            const canReset = !resetCooldown || (Date.now() - resetCooldown.getTime() > 30 * 24 * 60 * 60 * 1000);
+            const canReset = !resetCooldown || (Date.now() - resetCooldown.getTime() > 1 * 24 * 60 * 60 * 1000);
             const updateSidSection = document.getElementById('update-sid-section');
             
             if (canReset) {
